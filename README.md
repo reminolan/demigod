@@ -1,6 +1,5 @@
 # demigod
-A gameboy emulator written in C23 using SDL3
-Developed by Remi Nolan.
+A Nintendo Gameboy emulator written in C23 using SDL3, developed by Remi Nolan.
 
 # building
 Demigod is built using CMake and uses SDL3 as the only dependency.
@@ -20,3 +19,7 @@ cmake --build build
 ```
 
 Note for Visual Studio users: MSVC famously doesn't really support the C Language, and is therefore unsupported.
+
+## Why Demigod?
+The codename for the Nintendo Gameboy was the DMG, so DeMiGod; but that titlecasing feels very 2005
+
