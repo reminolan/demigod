@@ -22,11 +22,13 @@ endif()
 set(DMG_SOURCE_PATH ${PROJECT_SOURCE_DIR}/source/)
 set(DMG_SOURCES
    ${DMG_SOURCE_PATH}/demigod.c
+   ${DMG_SOURCE_PATH}/dmg_display.c
 )
 
 set(DMG_HEADER_PATH ${PROJECT_SOURCE_DIR}/header/)
 set(DMG_HEADERS
    ${DMG_HEADER_PATH}/demigod.h
+   ${DMG_HEADER_PATH}/dmg_display.h
 )
 
 add_executable(demigod WIN32 ${DMG_SOURCES} ${DMG_HEADERS})
