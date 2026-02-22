@@ -3,4 +3,6 @@
 
 #include <SDL3/SDL.h>
 
+#include "dmg_display.h"
+
 #endif//DEMIGOD_H
