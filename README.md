@@ -18,7 +18,7 @@ cmake -B build -S . -G Ninja
 cmake --build build
 ```
 
-Note for Visual Studio users: MSVC famously doesn't really support the C Language, and is therefore unsupported.
+> Note for Visual Studio users: MSVC famously doesn't really support the C Language, and is therefore unsupported.
 
 ## Why Demigod?
 The codename for the Nintendo Gameboy was the DMG, so DeMiGod; but that titlecasing feels very 2005
