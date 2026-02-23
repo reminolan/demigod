@@ -25,6 +25,7 @@ SDL_AppResult SDL_AppEvent(void* sdl_app_state, SDL_Event* event) {
 
 SDL_AppResult SDL_AppIterate(void* sdl_app_state) {
    DMG_TickDisplay();
+
    return SDL_APP_CONTINUE;
 }
 
