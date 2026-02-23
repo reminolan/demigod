@@ -5,6 +5,10 @@ build/*
 
 tmp
 
+# references I don't know if I'm allowed to redistribute 
+notes/gbctr.pdf
+notes/gbspec.txt
+
 # clangd cache
 .cache
 
