@@ -6,9 +6,37 @@ A Nintendo Gameboy emulator written in C23 using SDL3, developed by Remi Nolan.
 # building
 Demigod is built using CMake and uses SDL3 as the only dependency.
 
+### dependencies
+
 The CMake script will first try to pull SDL3 from 'vendor/SDL' which will be populated if you cloned the repository recursively.
 Should that fail, the script will assume SDL3-devel is installed system-wide (i.e. through dnf) and reference it using `find_package`.
 Otherwise the script will emit a message and fail to configure.
+
+If you want to install all dependencies through your package manager, you would use the following commands.
+
+apt (Debian):
+
+```sh
+sudo apt-get update
+sudo apt-get install cmake SDL3-devel
+```
+
+dnf (RHEL):
+
+```sh
+sudo dnf update
+sudo dnf install cmake SDL3-devel
+```
+
+pacman (Arch):
+
+```sh
+sudo pacman -ySu cmake SDL3-devel
+```
+
+Given the above paragraph, you don't strictly need `SDL3-devel` if you clone the repository recursively, however that will make sure you have all of SDL3's dependencies installed.
+
+### using CMake
 
 To build run the following commands from the repository root:
 
