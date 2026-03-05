@@ -1,0 +1,15 @@
+
+[ ] CPU Emulation
+   [ ] Timer
+   [-] Instructions
+      [+] OpCodes
+      [ ] Execution
+[ ] Memory
+   [ ] Buffer
+   [ ] Read
+   [ ] Write
+[ ] PPU Emulation
+   [ ] Backbuffer
+[ ] Input
+   [ ] Rebindable
+

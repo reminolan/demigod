@@ -79,8 +79,14 @@ typedef struct DMG_RegisterFile {
       };
    };
 
-   Uint16 program_counter;
-   Uint16 stack_pointer;
+   union {
+      Uint16 program_counter;
+      Uint16 pc;
+   };
+   union {
+      Uint16 stack_pointer;
+      Uint16 sp;
+   };
 } DMG_RegisterFile;
 
 typedef struct DMG_CPU {
@@ -208,23 +214,23 @@ typedef enum DMG_OpCode: Uint8 {
    DMG_OP_LD_HL_L      = 0x75,
    DMG_OP_LD_HL_A      = 0x77,
 
-   DMG_OP_LD_A_B       = 0x48,
-   DMG_OP_LD_A_C       = 0x49,
-   DMG_OP_LD_A_D       = 0x4A,
-   DMG_OP_LD_A_E       = 0x4B,
-   DMG_OP_LD_A_H       = 0x4C,
-   DMG_OP_LD_A_L       = 0x4D,
-   DMG_OP_LD_A_HL      = 0x4E,
-   DMG_OP_LD_A_A       = 0x4F,
+   DMG_OP_LD_A_B       = 0x78,
+   DMG_OP_LD_A_C       = 0x79,
+   DMG_OP_LD_A_D       = 0x7A,
+   DMG_OP_LD_A_E       = 0x7B,
+   DMG_OP_LD_A_H       = 0x7C,
+   DMG_OP_LD_A_L       = 0x7D,
+   DMG_OP_LD_A_HL      = 0x7E,
+   DMG_OP_LD_A_A       = 0x7F,
 
-   DMG_OP_LDH_a8_A     = 0xE0,
-   DMG_OP_LDH_A_a8     = 0xF0,
+   DMG_OP_LDH_n_A      = 0xE0,
+   DMG_OP_LDH_A_n      = 0xF0,
 
    DMG_OP_LD_iC_A      = 0xE2,
    DMG_OP_LD_A_iC      = 0xF2,
 
-   DMG_OP_LD_a16_A     = 0xEA,
-   DMG_OP_LD_A_a16     = 0xFA,
+   DMG_OP_LD_n16_A     = 0xEA,
+   DMG_OP_LD_A_n16     = 0xFA,
 
    //8-bit Arithmetic/Logic
    DMG_OP_INC_B        = 0x04,
@@ -236,8 +242,8 @@ typedef enum DMG_OpCode: Uint8 {
    DMG_OP_INC_H        = 0x24,
    DMG_OP_DEC_H        = 0x25,
 
-   DMG_OP_INC_HL       = 0x34,
-   DMG_OP_DEC_HL       = 0x35,
+   DMG_OP_INC_HLi      = 0x34,
+   DMG_OP_DEC_HLi      = 0x35,
 
    DMG_OP_INC_C        = 0x0C,
    DMG_OP_DEC_C        = 0x0D,
@@ -338,12 +344,12 @@ typedef enum DMG_OpCode: Uint8 {
    DMG_OP_CP_n         = 0xFE,
 
    //16-bit Loads
-   DMG_OP_LD_BC_d16    = 0x01,
-   DMG_OP_LD_DE_d16    = 0x11,
-   DMG_OP_LD_HL_d16    = 0x21,
-   DMG_OP_LD_SP_d16    = 0x31,
+   DMG_OP_LD_BC_nn     = 0x01,
+   DMG_OP_LD_DE_nn     = 0x11,
+   DMG_OP_LD_HL_nn     = 0x21,
+   DMG_OP_LD_SP_nn     = 0x31,
 
-   DMG_OP_LD_a16_SP    = 0x08,
+   DMG_OP_LD_n16_SP    = 0x08,
 
    DMG_OP_POP_BC       = 0xC1,
    DMG_OP_PUSH_BC      = 0xC5,
@@ -395,9 +401,9 @@ typedef enum DMG_OpCode: Uint8 {
    DMG_OP_EI           = 0xFB,
 
    //Undefined
-   DMG_OP_UNDEFINED_0  = 0xC3,
-   DMG_OP_UNDEFINED_1  = 0xCB,
-   DMG_OP_UNDEFINED_2  = 0xCD,
+   DMG_OP_UNDEFINED_0  = 0xD3,
+   DMG_OP_UNDEFINED_1  = 0xDB,
+   DMG_OP_UNDEFINED_2  = 0xDD,
    DMG_OP_UNDEFINED_3  = 0xE3,
    DMG_OP_UNDEFINED_4  = 0xE4,
    DMG_OP_UNDEFINED_5  = 0xEB,
@@ -407,5 +413,9 @@ typedef enum DMG_OpCode: Uint8 {
    DMG_OP_UNDEFINED_9  = 0xFC,
    DMG_OP_UNDEFINED_A  = 0xFD,
 } DMG_OpCode;
+
+void DMG_FetchInstruction(DMG_CPU* cpu);
+
+void DMG_ExecuteInstruction(DMG_CPU* cpu);
 
 #endif//DMG_CPU_H
