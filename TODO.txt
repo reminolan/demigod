@@ -1,0 +1,33 @@
+
+Legend:
+   [ ] Not Implemented
+   [-] Partially Implemented
+   [+] Fully Implemented
+
+Clock:
+   [ ] 4 MiHz Clock
+   [ ] 1 MiHz Phi
+
+CPU:
+   [-] Instructions
+   [-] ALU
+      [ ] Proper Looping (255 + 1 = 0)
+      [ ] Signed Support
+
+Memory:
+   [ ] Cartridge ROM Bank
+   [ ] Cartridge Switchable Bank
+   [ ] Video RAM
+   [ ] Cartridge RAM
+   [ ] Work RAM
+   [ ] Echo RAM
+   [ ] Object Attribute Memory
+   [ ] Prohibitted
+   [ ] I/O Registers
+   [ ] High RAM
+   [ ] Interrupt Enable
+
+PPU:
+   [ ] Backbuffer
+   [ ] Modes
+
