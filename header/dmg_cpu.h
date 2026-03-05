@@ -22,6 +22,7 @@
 #define DMG_CPU_H
 
 #include <SDL3/SDL.h>
+
 #include "dmg_cpu_opcodes.h"
 
 typedef enum DMG_CPUFlags: Uint8 {
