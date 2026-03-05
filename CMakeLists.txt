@@ -1,4 +1,3 @@
-
 # -- CMake Setup ---------------------------------------------------------------
 cmake_minimum_required(VERSION 3.31.10)
 
@@ -12,6 +11,7 @@ project(demigod)
 
 # -- Vendored Libraries --------------------------------------------------------
 set(DMG_VENDOR_PATH ${PROJECT_SOURCE_DIR}/vendor/)
+
 if(EXISTS ${DMG_VENDOR_PATH}/SDL/CMakeLists.txt)
    add_subdirectory(${DMG_VENDOR_PATH}/SDL EXCLUDE_FROM_ALL)
 else()
