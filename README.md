@@ -24,6 +24,10 @@ cmake --build build
 
 > Note for Visual Studio users: MSVC [doesn't fully support C23](https://en.cppreference.com/w/c/compiler_support/23.html), and is therefore unsupported.
 
+## License
+Demigod is licensed under the Zlib license.
+See LICENSE for more information.
+
 ## Why the name Demigod?
-The codename for the original gameboy model was DMG so I picked the name DeMiGod, but that felt too tacky.
+The codename for the original gameboy model was DMG so I picked the name DeMiGod, but that capitalisation felt too tacky.
 
