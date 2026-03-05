@@ -25,6 +25,7 @@
 
 #include "dmg_integers.h"
 #include "dmg_memory.h"
+#include "dmg_cpu_opcodes.h"
 #include "dmg_cpu.h"
 #include "dmg_display.h"
 
