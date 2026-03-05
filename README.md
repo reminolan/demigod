@@ -71,3 +71,8 @@ The codename for the original gameboy model was DMG so I picked the name DeMiGod
 This project is not intended to be a replacement for something like VisualBoyAdvance or whichever mature, feature-tested gameboy (family) emulator.
 My intent in developing demigod is for me to expand my knowledge of programming and computer hardware.
 
+### All the instructions are for linux, will you support platform X, Y, or Z?
+Officially the only supported platform is linux.
+However, considering all memory access is endian-aware & SDL3 is the only direct dependency (even the c-runtime is accessed through SDL) it should compile and run on all platforms SDL supports.
+That said, it is entirely up to you to compile the emulator and figure out any bugs, macOS and Windows are outside of the scope of this project.
+
