@@ -38,6 +38,14 @@ static inline Uint8 DMG_Xor(DMG_CPU* cpu, Uint8 left, Uint8 right);
 
 static inline Uint8 DMG_Or(DMG_CPU* cpu, Uint8 left, Uint8 right);
 
+static inline Uint8 DMG_RotateLeft(DMG_CPU* cpu, Uint8 value);
+
+static inline Uint8 DMG_RotateLeftCircular(DMG_CPU* cpu, Uint8 value);
+
+static inline Uint8 DMG_RotateRight(DMG_CPU* cpu, Uint8 value);
+
+static inline Uint8 DMG_RotateRightCircular(DMG_CPU* cpu, Uint8 value);
+
 static inline void DMG_WriteProgramCounterToStack(DMG_CPU* cpu);
 
 void DMG_FetchInstruction(DMG_CPU* cpu) {
@@ -810,22 +818,22 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
       case DMG_OP_LD_BC_nn: {
          Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
-         cpu->registers.bc = DMG_ComposeUint16(nn_less_significant, nn_more_signifcant);
+         cpu->registers.bc = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
       } break;
       case DMG_OP_LD_DE_nn: {
          Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
-         cpu->registers.de = DMG_ComposeUint16(nn_less_significant, nn_more_signifcant);
+         cpu->registers.de = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
       } break;
       case DMG_OP_LD_HL_nn: {
          Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
-         cpu->registers.hl = DMG_ComposeUint16(nn_less_significant, nn_more_signifcant);
+         cpu->registers.hl = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
       } break;
       case DMG_OP_LD_SP_nn: {
          Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
-         cpu->registers.sp = DMG_ComposeUint16(nn_less_significant, nn_more_signifcant);
+         cpu->registers.sp = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
       } break;
       case DMG_OP_LD_n16_SP: {
          Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
@@ -833,7 +841,7 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
          Uint16 nn = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
 
          Uint8 sp_less_significant;
-         Uint8 sp_more_signficaint;
+         Uint8 sp_more_significant;
          DMG_DecomposeUint16(cpu->registers.sp, &sp_less_significant, &sp_more_significant);
 
          DMG_WriteMemory(cpu, nn, sp_less_significant);
@@ -919,53 +927,87 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
          cpu->registers.hl = DMG_ReadMemory(cpu, cpu->registers.stack_pointer + offset);
       } break;
       case DMG_OP_LD_SP_HL: {
+         cpu->registers.sp = cpu->registers.hl;
       } break;
       case DMG_OP_INC_BC: {
+         cpu->registers.bc++;
       } break;
       case DMG_OP_DEC_BC: {
+         cpu->registers.bc--;
       } break;
       case DMG_OP_INC_DE: {
+         cpu->registers.de++;
       } break;
       case DMG_OP_DEC_DE: {
+         cpu->registers.de--;
       } break;
       case DMG_OP_INC_HL: {
+         cpu->registers.hl++;
       } break;
       case DMG_OP_DEC_HL: {
+         cpu->registers.hl--;
       } break;
       case DMG_OP_INC_SP: {
+         cpu->registers.sp++;
       } break;
       case DMG_OP_DEC_SP: {
+         cpu->registers.sp--;
       } break;
       case DMG_OP_ADD_HL_BC: {
+         cpu->registers.hl = DMG_Add16(cpu, cpu->registers.hl, cpu->registers.bc);
       } break;
       case DMG_OP_ADD_HL_DE: {
+         cpu->registers.hl = DMG_Add16(cpu, cpu->registers.hl, cpu->registers.de);
       } break;
       case DMG_OP_ADD_HL_HL: {
+         cpu->registers.hl = DMG_Add16(cpu, cpu->registers.hl, cpu->registers.hl);
       } break;
       case DMG_OP_ADD_HL_SP: {
+         cpu->registers.hl = DMG_Add16(cpu, cpu->registers.hl, cpu->registers.sp);
       } break;
       case DMG_OP_ADD_SP_e: {
+         /* This is technically signed but that doesn't matter, the add routine will handle that */
+         Uint16 offset = (Uint16)DMG_ReadMemory(cpu, cpu->registers.program_counter++);
+         cpu->registers.stack_pointer = DMG_Add16(cpu, cpu->registers.sp, offset);
       } break;
       case DMG_OP_RLCA: {
+         cpu->registers.a = DMG_RotateLeftCircular(cpu, cpu->registers.a);
       } break;
       case DMG_OP_RRCA: {
+         cpu->registers.a = DMG_RotateRightCircular(cpu, cpu->registers.a);
       } break;
       case DMG_OP_RLA: {
+         cpu->registers.a = DMG_RotateLeft(cpu, cpu->registers.a);
       } break;
       case DMG_OP_RRA: {
+         cpu->registers.a = DMG_RotateRight(cpu, cpu->registers.a);
       } break;
       case DMG_OP_CB_op: {
+         /* TODO: implement */
       } break;
       case DMG_OP_NOP: {
+         /* NO-OPERATION */
       } break;
       case DMG_OP_STOP: {
+         /* TODO: implement */
       } break;
       case DMG_OP_HALT: {
+         /* TODO: implement */
       } break;
       case DMG_OP_DI: {
+         cpu->next_cycle_interrupt_change = 0;
       } break;
       case DMG_OP_EI: {
+         cpu->next_cycle_interrupt_change = 0;
       } break;
+
+      /*
+       * Note remi, 4 March 2026
+       * Should these act as a NOP?
+       * Or should the program terminate?
+       * I don't know.
+       * Further research is required.
+       */
       case DMG_OP_UNDEFINED_0: {
       } break;
       case DMG_OP_UNDEFINED_1: {
@@ -1081,6 +1123,28 @@ static inline Uint8 DMG_Or(DMG_CPU* cpu, Uint8 left, Uint8 right) {
    cpu->registers.flags = (result == 0) ? DMG_CPU_FLAG_ZERO : 0;
 
    return result;
+}
+
+static inline Uint8 DMG_RotateLeft(DMG_CPU* cpu, Uint8 value) {
+   /* We shift right by 4 because we need the seventh bit shifted to the carry flag (third bit), 7 - 3 = 4 */
+   cpu->registers.flags = (value & 0b10000000) >> 4;
+   return value << 1;
+}
+
+static inline Uint8 DMG_RotateLeftCircular(DMG_CPU* cpu, Uint8 value) {
+   /* See DMG_RotateLeft */
+   cpu->registers.flags = (value & 0b10000000) >> 4;
+   return (value << 1) | (value >> 7);
+}
+
+static inline Uint8 DMG_RotateRight(DMG_CPU* cpu, Uint8 value) {
+   cpu->registers.flags = (value & 0b1) << DMG_CPU_FLAG_CARRY_SHIFT;
+   return value >> 1;
+}
+
+static inline Uint8 DMG_RotateRightCircular(DMG_CPU* cpu, Uint8 value) {
+   cpu->registers.flags = (value & 0b1) << DMG_CPU_FLAG_CARRY_SHIFT;
+   return (value >> 1) | (value << 7);
 }
 
 static inline void DMG_WriteProgramCounterToStack(DMG_CPU* cpu) {

@@ -111,6 +111,7 @@ typedef struct DMG_RegisterFile {
 
 typedef struct DMG_CPU {
    DMG_RegisterFile registers;
+   Uint8 next_cycle_interrupt_change;
 } DMG_CPU;
 
 typedef enum DMG_OpCode: Uint8 {
