@@ -20,8 +20,6 @@
 
 #include "demigod.h"
 
-static inline Uint8 DMG_AddNibble(Uint8 augend, Uint8 addend, Uint8 in_carry, Uint8* out_carry);
-
 static inline Uint8 DMG_Add8(DMG_CPU* cpu, Uint8 augend, Uint8 addend);
 
 static inline Uint8 DMG_AddWithCarry8(DMG_CPU* cpu, Uint8 augend, Uint8 addend);
@@ -38,13 +36,23 @@ static inline Uint8 DMG_Xor(DMG_CPU* cpu, Uint8 left, Uint8 right);
 
 static inline Uint8 DMG_Or(DMG_CPU* cpu, Uint8 left, Uint8 right);
 
+static inline Uint8 DMG_ShiftLeft(DMG_CPU* cpu, Uint8 value);
+
 static inline Uint8 DMG_RotateLeft(DMG_CPU* cpu, Uint8 value);
 
 static inline Uint8 DMG_RotateLeftCircular(DMG_CPU* cpu, Uint8 value);
 
+static inline Uint8 DMG_ShiftRight(DMG_CPU* cpu, Uint8 value);
+
 static inline Uint8 DMG_RotateRight(DMG_CPU* cpu, Uint8 value);
 
 static inline Uint8 DMG_RotateRightCircular(DMG_CPU* cpu, Uint8 value);
+
+static inline Uint8 DMG_SwapNibbles(DMG_CPU* cpu, Uint8 value);
+
+static inline void DMG_CheckBit(DMG_CPU* cpu, Uint8 bit, Uint8 value);
+
+static inline void DMG_ExecuteCBOpCode(DMG_CPU* cpu, DMG_CBOpCode cb_op_code);
 
 static inline void DMG_WriteProgramCounterToStack(DMG_CPU* cpu);
 
@@ -63,12 +71,12 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
          Sint8 offset = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          cpu->registers.program_counter += offset;
       } break;
-      case DMG_OP_JR_Z_e:
+      case DMG_OP_JR_Z_e: {
          Sint8 offset = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          if (cpu->registers.flags & DMG_CPU_FLAG_ZERO) {
             cpu->registers.program_counter += offset;
          }
-         break;
+      } break;
       case DMG_OP_JR_C_e: {
          Sint8 offset = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          if (cpu->registers.flags & DMG_CPU_FLAG_CARRY) {
@@ -128,46 +136,46 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
          }
       } break;
       case DMG_OP_CALL_nn: {
-         Uint8 nn_less_signficant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
+         Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
 
          DMG_WriteProgramCounterToStack(cpu);
-         cpu->registers.program_counter = DMG_ComposeUint16(nn_less_signficant, nn_more_significant);
+         cpu->registers.program_counter = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
       } break;
       case DMG_OP_CALL_Z_nn: {
-         Uint8 nn_less_signficant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
+         Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
 
          if (cpu->registers.flags & DMG_CPU_FLAG_ZERO) {
             DMG_WriteProgramCounterToStack(cpu);
-            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_signficant, nn_more_significant);
+            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
          }
       } break;
       case DMG_OP_CALL_C_nn: {
-         Uint8 nn_less_signficant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
+         Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
 
          if (cpu->registers.flags & DMG_CPU_FLAG_CARRY) {
             DMG_WriteProgramCounterToStack(cpu);
-            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_signficant, nn_more_significant);
+            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
          }
       } break;
       case DMG_OP_CALL_NZ_nn: {
-         Uint8 nn_less_signficant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
+         Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
 
          if (!(cpu->registers.flags & DMG_CPU_FLAG_ZERO)) {
             DMG_WriteProgramCounterToStack(cpu);
-            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_signficant, nn_more_significant);
+            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
          }
       } break;
       case DMG_OP_CALL_NC_nn: {
-         Uint8 nn_less_signficant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
+         Uint8 nn_less_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
          Uint8 nn_more_significant = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
 
          if (!(cpu->registers.flags & DMG_CPU_FLAG_CARRY)) {
             DMG_WriteProgramCounterToStack(cpu);
-            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_signficant, nn_more_significant);
+            cpu->registers.program_counter = DMG_ComposeUint16(nn_less_significant, nn_more_significant);
          }
       } break;
       case DMG_OP_RET: {
@@ -563,7 +571,7 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
          if ((cpu->registers.a > 0x99) || (cpu->registers.flags & DMG_CPU_FLAG_CARRY)) {
             offset |= 0x60;
          }
-         offset += (Uint8)(((Uint16)cpu->registers.a + offset) % 255);
+         cpu->registers.a = (Uint8)(((Uint16)cpu->registers.a + offset) % 255);
       } break;
       case DMG_OP_SCF: {
          cpu->registers.flags &= ~DMG_CPU_FLAG_SUBTRACTION;
@@ -983,7 +991,13 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
          cpu->registers.a = DMG_RotateRight(cpu, cpu->registers.a);
       } break;
       case DMG_OP_CB_op: {
-         /* TODO: implement */
+         /* Note:
+          * Realistically this doesn't need to be another function because it's only called here.
+          * However, I don't particularly want a 256+ line case statement so I've broken it out.
+          *    - remi 05 Mar 26
+          */
+         DMG_CBOpCode cb_op_code = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
+         DMG_ExecuteCBOpCode(cpu, cb_op_code);
       } break;
       case DMG_OP_NOP: {
          /* NO-OPERATION */
@@ -1031,16 +1045,6 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
       case DMG_OP_UNDEFINED_A: {
       } break;
    }
-}
-
-static inline Uint8 DMG_AddNibble(Uint8 augend, Uint8 addend, Uint8 in_carry, Uint8* out_carry) {
-   Uint8 result = (augend & 0xF) + (addend & 0xF) + (in_carry & 0b1);
-
-   if (out_carry) {
-      *out_carry = (result >> 4) & 1;
-   }
-
-   return result;
 }
 
 static inline Uint8 DMG_Add8(DMG_CPU* cpu, Uint8 augend, Uint8 addend) {
@@ -1125,10 +1129,16 @@ static inline Uint8 DMG_Or(DMG_CPU* cpu, Uint8 left, Uint8 right) {
    return result;
 }
 
-static inline Uint8 DMG_RotateLeft(DMG_CPU* cpu, Uint8 value) {
+static inline Uint8 DMG_ShiftLeft(DMG_CPU* cpu, Uint8 value) {
    /* We shift right by 4 because we need the seventh bit shifted to the carry flag (third bit), 7 - 3 = 4 */
    cpu->registers.flags = (value & 0b10000000) >> 4;
    return value << 1;
+}
+
+static inline Uint8 DMG_RotateLeft(DMG_CPU* cpu, Uint8 value) {
+   Uint8 result = (value << 1) | ((cpu->registers.flags & DMG_CPU_FLAG_CARRY) >> DMG_CPU_FLAG_CARRY_SHIFT);
+   cpu->registers.flags = (value & 0b10000000) >> 4;
+   return result;
 }
 
 static inline Uint8 DMG_RotateLeftCircular(DMG_CPU* cpu, Uint8 value) {
@@ -1137,14 +1147,891 @@ static inline Uint8 DMG_RotateLeftCircular(DMG_CPU* cpu, Uint8 value) {
    return (value << 1) | (value >> 7);
 }
 
-static inline Uint8 DMG_RotateRight(DMG_CPU* cpu, Uint8 value) {
+static inline Uint8 DMG_ShiftRight(DMG_CPU* cpu, Uint8 value) {
    cpu->registers.flags = (value & 0b1) << DMG_CPU_FLAG_CARRY_SHIFT;
    return value >> 1;
+}
+
+static inline Uint8 DMG_RotateRight(DMG_CPU* cpu, Uint8 value) {
+   /* CARRY_FLAG is bit 4; we need to shift it to bit 7. (7 - 4 = 3) */
+   Uint8 result = (value >> 1) | (cpu->registers.flags & DMG_CPU_FLAG_CARRY) << 3;
+   cpu->registers.flags = (value & 0b1) << DMG_CPU_FLAG_CARRY_SHIFT;
+   return result;
 }
 
 static inline Uint8 DMG_RotateRightCircular(DMG_CPU* cpu, Uint8 value) {
    cpu->registers.flags = (value & 0b1) << DMG_CPU_FLAG_CARRY_SHIFT;
    return (value >> 1) | (value << 7);
+}
+
+static inline Uint8 DMG_SwapNibbles(DMG_CPU* cpu, Uint8 value) {
+   Uint8 result = ((value & 0xF) << 8) | ((value & 0xF0) >> 8);
+   cpu->registers.flags = (Uint8)((result == 0) & 0b1) << DMG_CPU_FLAG_ZERO_SHIFT;
+   return result;
+}
+
+static inline void DMG_CheckBit(DMG_CPU* cpu, Uint8 bit, Uint8 value) {
+   Uint8 zero_flag = ((value >> bit) & 0b1) << DMG_CPU_FLAG_ZERO_SHIFT;
+   cpu->registers.flags = DMG_CPU_FLAG_HALF_CARRY | zero_flag;
+}
+
+static inline void DMG_ExecuteCBOpCode(DMG_CPU* cpu, DMG_CBOpCode cb_op_code) {
+   switch (cb_op_code) {
+      case DMG_CB_RLC_B: {
+         cpu->registers.b = DMG_RotateLeftCircular(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_RLC_C: {
+         cpu->registers.c = DMG_RotateLeftCircular(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_RLC_D: {
+         cpu->registers.d = DMG_RotateLeftCircular(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_RLC_E: {
+         cpu->registers.e = DMG_RotateLeftCircular(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_RLC_H: {
+         cpu->registers.h = DMG_RotateLeftCircular(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_RLC_L: {
+         cpu->registers.l = DMG_RotateLeftCircular(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_RLC_A: {
+         cpu->registers.a = DMG_RotateLeftCircular(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_RLC_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_RotateLeftCircular(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RRC_B: {
+         cpu->registers.b = DMG_RotateRightCircular(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_RRC_C: {
+         cpu->registers.c = DMG_RotateRightCircular(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_RRC_D: {
+         cpu->registers.d = DMG_RotateRightCircular(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_RRC_E: {
+         cpu->registers.e = DMG_RotateRightCircular(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_RRC_H: {
+         cpu->registers.h = DMG_RotateRightCircular(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_RRC_L: {
+         cpu->registers.l = DMG_RotateRightCircular(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_RRC_A: {
+         cpu->registers.a = DMG_RotateRightCircular(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_RRC_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_RotateRightCircular(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RL_B: {
+         cpu->registers.b = DMG_RotateLeft(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_RL_C: {
+         cpu->registers.c = DMG_RotateLeft(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_RL_D: {
+         cpu->registers.d = DMG_RotateLeft(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_RL_E: {
+         cpu->registers.e = DMG_RotateLeft(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_RL_H: {
+         cpu->registers.h = DMG_RotateLeft(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_RL_L: {
+         cpu->registers.l = DMG_RotateLeft(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_RL_A: {
+         cpu->registers.a = DMG_RotateLeft(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_RL_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_RotateLeft(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RR_B: {
+         cpu->registers.b = DMG_RotateRight(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_RR_C: {
+         cpu->registers.c = DMG_RotateRight(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_RR_D: {
+         cpu->registers.d = DMG_RotateRight(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_RR_E: {
+         cpu->registers.e = DMG_RotateRight(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_RR_H: {
+         cpu->registers.h = DMG_RotateRight(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_RR_L: {
+         cpu->registers.l = DMG_RotateRight(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_RR_A: {
+         cpu->registers.a = DMG_RotateRight(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_RR_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_RotateRight(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SLA_B: {
+         cpu->registers.b = DMG_ShiftLeft(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_SLA_C: {
+         cpu->registers.c = DMG_ShiftLeft(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_SLA_D: {
+         cpu->registers.d = DMG_ShiftLeft(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_SLA_E: {
+         cpu->registers.e = DMG_ShiftLeft(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_SLA_H: {
+         cpu->registers.h = DMG_ShiftLeft(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_SLA_L: {
+         cpu->registers.l = DMG_ShiftLeft(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_SLA_A: {
+         cpu->registers.a = DMG_ShiftLeft(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_SLA_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_ShiftLeft(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SRA_B: {
+         cpu->registers.b = DMG_ShiftRight(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_SRA_C: {
+         cpu->registers.c = DMG_ShiftRight(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_SRA_D: {
+         cpu->registers.d = DMG_ShiftRight(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_SRA_E: {
+         cpu->registers.e = DMG_ShiftRight(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_SRA_H: {
+         cpu->registers.h = DMG_ShiftRight(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_SRA_L: {
+         cpu->registers.l = DMG_ShiftRight(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_SRA_A: {
+         cpu->registers.a = DMG_ShiftRight(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_SRA_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_ShiftRight(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SWAP_B: {
+         cpu->registers.b = DMG_SwapNibbles(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_SWAP_C: {
+         cpu->registers.c = DMG_SwapNibbles(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_SWAP_D: {
+         cpu->registers.d = DMG_SwapNibbles(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_SWAP_E: {
+         cpu->registers.e = DMG_SwapNibbles(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_SWAP_H: {
+         cpu->registers.h = DMG_SwapNibbles(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_SWAP_L: {
+         cpu->registers.l = DMG_SwapNibbles(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_SWAP_A: {
+         cpu->registers.a = DMG_SwapNibbles(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_SWAP_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_SwapNibbles(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SRL_B: {
+         cpu->registers.b = DMG_ShiftRight(cpu, cpu->registers.b);
+      } break;
+      case DMG_CB_SRL_C: {
+         cpu->registers.c = DMG_ShiftRight(cpu, cpu->registers.c);
+      } break;
+      case DMG_CB_SRL_D: {
+         cpu->registers.d = DMG_ShiftRight(cpu, cpu->registers.d);
+      } break;
+      case DMG_CB_SRL_E: {
+         cpu->registers.e = DMG_ShiftRight(cpu, cpu->registers.e);
+      } break;
+      case DMG_CB_SRL_H: {
+         cpu->registers.h = DMG_ShiftRight(cpu, cpu->registers.h);
+      } break;
+      case DMG_CB_SRL_L: {
+         cpu->registers.l = DMG_ShiftRight(cpu, cpu->registers.l);
+      } break;
+      case DMG_CB_SRL_A: {
+         cpu->registers.a = DMG_ShiftRight(cpu, cpu->registers.a);
+      } break;
+      case DMG_CB_SRL_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value = DMG_ShiftRight(cpu, value);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_BIT_0_B: {
+         DMG_CheckBit(cpu, 0, cpu->registers.b);
+      } break;
+      case DMG_CB_BIT_0_C: {
+         DMG_CheckBit(cpu, 0, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_0_D: {
+         DMG_CheckBit(cpu, 0, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_0_E: {
+         DMG_CheckBit(cpu, 0, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_0_H: {
+         DMG_CheckBit(cpu, 0, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_0_L: {
+         DMG_CheckBit(cpu, 0, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_0_A: {
+         DMG_CheckBit(cpu, 0, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_0_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 0, value);
+      } break;
+
+      case DMG_CB_BIT_1_B: {
+         DMG_CheckBit(cpu, 1, cpu->registers.b);
+      } break;
+      case DMG_CB_BIT_1_C: {
+         DMG_CheckBit(cpu, 1, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_1_D: {
+         DMG_CheckBit(cpu, 1, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_1_E: {
+         DMG_CheckBit(cpu, 1, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_1_H: {
+         DMG_CheckBit(cpu, 1, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_1_L: {
+         DMG_CheckBit(cpu, 1, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_1_A: {
+         DMG_CheckBit(cpu, 1, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_1_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 1, value);
+      } break;
+
+      case DMG_CB_BIT_2_B: {
+         DMG_CheckBit(cpu, 2, cpu->registers.b);
+      } break;
+      case DMG_CB_BIT_2_C: {
+         DMG_CheckBit(cpu, 2, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_2_D: {
+         DMG_CheckBit(cpu, 2, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_2_E: {
+         DMG_CheckBit(cpu, 2, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_2_H: {
+         DMG_CheckBit(cpu, 2, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_2_L: {
+         DMG_CheckBit(cpu, 2, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_2_A: {
+         DMG_CheckBit(cpu, 2, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_2_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 2, value);
+      } break;
+
+      case DMG_CB_BIT_3_B: {
+         DMG_CheckBit(cpu, 3, cpu->registers.b);
+      } break;
+      case DMG_CB_BIT_3_C: {
+         DMG_CheckBit(cpu, 3, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_3_D: {
+         DMG_CheckBit(cpu, 3, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_3_E: {
+         DMG_CheckBit(cpu, 3, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_3_H: {
+         DMG_CheckBit(cpu, 3, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_3_L: {
+         DMG_CheckBit(cpu, 3, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_3_A: {
+         DMG_CheckBit(cpu, 3, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_3_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 3, value);
+      } break;
+
+      case DMG_CB_BIT_4_B: {
+         DMG_CheckBit(cpu, 4, cpu->registers.b);
+      } break;
+      case DMG_CB_BIT_4_C: {
+         DMG_CheckBit(cpu, 4, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_4_D: {
+         DMG_CheckBit(cpu, 4, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_4_E: {
+         DMG_CheckBit(cpu, 4, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_4_H: {
+         DMG_CheckBit(cpu, 4, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_4_L: {
+         DMG_CheckBit(cpu, 4, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_4_A: {
+         DMG_CheckBit(cpu, 4, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_4_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 4, value);
+      } break;
+
+      case DMG_CB_BIT_5_B: {
+      } break;
+         DMG_CheckBit(cpu, 5, cpu->registers.a);
+      case DMG_CB_BIT_5_C: {
+         DMG_CheckBit(cpu, 5, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_5_D: {
+         DMG_CheckBit(cpu, 5, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_5_E: {
+         DMG_CheckBit(cpu, 5, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_5_H: {
+         DMG_CheckBit(cpu, 5, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_5_L: {
+         DMG_CheckBit(cpu, 5, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_5_A: {
+         DMG_CheckBit(cpu, 5, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_5_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 5, value);
+      } break;
+
+      case DMG_CB_BIT_6_B: {
+         DMG_CheckBit(cpu, 6, cpu->registers.b);
+      } break;
+      case DMG_CB_BIT_6_C: {
+         DMG_CheckBit(cpu, 6, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_6_D: {
+         DMG_CheckBit(cpu, 6, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_6_E: {
+         DMG_CheckBit(cpu, 6, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_6_H: {
+         DMG_CheckBit(cpu, 6, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_6_L: {
+         DMG_CheckBit(cpu, 6, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_6_A: {
+         DMG_CheckBit(cpu, 6, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_6_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 6, value);
+      } break;
+
+      case DMG_CB_BIT_7_B: {
+         DMG_CheckBit(cpu, 7, cpu->registers.b);
+      } break;
+      case DMG_CB_BIT_7_C: {
+         DMG_CheckBit(cpu, 7, cpu->registers.c);
+      } break;
+      case DMG_CB_BIT_7_D: {
+         DMG_CheckBit(cpu, 7, cpu->registers.d);
+      } break;
+      case DMG_CB_BIT_7_E: {
+         DMG_CheckBit(cpu, 7, cpu->registers.e);
+      } break;
+      case DMG_CB_BIT_7_H: {
+         DMG_CheckBit(cpu, 7, cpu->registers.h);
+      } break;
+      case DMG_CB_BIT_7_L: {
+         DMG_CheckBit(cpu, 7, cpu->registers.l);
+      } break;
+      case DMG_CB_BIT_7_A: {
+         DMG_CheckBit(cpu, 7, cpu->registers.a);
+      } break;
+      case DMG_CB_BIT_7_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         DMG_CheckBit(cpu, 7, value);
+      } break;
+
+      case DMG_CB_RES_0_B: {
+         cpu->registers.b &= ~(1 << 0);
+      } break;
+      case DMG_CB_RES_0_C: {
+         cpu->registers.c &= ~(1 << 0);
+      } break;
+      case DMG_CB_RES_0_D: {
+         cpu->registers.d &= ~(1 << 0);
+      } break;
+      case DMG_CB_RES_0_E: {
+         cpu->registers.e &= ~(1 << 0);
+      } break;
+      case DMG_CB_RES_0_H: {
+         cpu->registers.h &= ~(1 << 0);
+      } break;
+      case DMG_CB_RES_0_L: {
+         cpu->registers.l &= ~(1 << 0);
+      } break;
+      case DMG_CB_RES_0_A: {
+         cpu->registers.a &= ~(1 << 0);
+      } break;
+      case DMG_CB_RES_0_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 0);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RES_1_B: {
+         cpu->registers.b &= ~(1 << 1);
+      } break;
+      case DMG_CB_RES_1_C: {
+         cpu->registers.c &= ~(1 << 1);
+      } break;
+      case DMG_CB_RES_1_D: {
+         cpu->registers.d &= ~(1 << 1);
+      } break;
+      case DMG_CB_RES_1_E: {
+         cpu->registers.e &= ~(1 << 1);
+      } break;
+      case DMG_CB_RES_1_H: {
+         cpu->registers.h &= ~(1 << 1);
+      } break;
+      case DMG_CB_RES_1_L: {
+         cpu->registers.l &= ~(1 << 1);
+      } break;
+      case DMG_CB_RES_1_A: {
+         cpu->registers.a &= ~(1 << 1);
+      } break;
+      case DMG_CB_RES_1_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 1);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RES_2_B: {
+         cpu->registers.b &= ~(1 << 2);
+      } break;
+      case DMG_CB_RES_2_C: {
+         cpu->registers.c &= ~(1 << 2);
+      } break;
+      case DMG_CB_RES_2_D: {
+         cpu->registers.d &= ~(1 << 2);
+      } break;
+      case DMG_CB_RES_2_E: {
+         cpu->registers.e &= ~(1 << 2);
+      } break;
+      case DMG_CB_RES_2_H: {
+         cpu->registers.h &= ~(1 << 2);
+      } break;
+      case DMG_CB_RES_2_L: {
+         cpu->registers.l &= ~(1 << 2);
+      } break;
+      case DMG_CB_RES_2_A: {
+         cpu->registers.a &= ~(1 << 2);
+      } break;
+      case DMG_CB_RES_2_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 2);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RES_3_B: {
+         cpu->registers.b &= ~(1 << 3);
+      } break;
+      case DMG_CB_RES_3_C: {
+         cpu->registers.c &= ~(1 << 3);
+      } break;
+      case DMG_CB_RES_3_D: {
+         cpu->registers.d &= ~(1 << 3);
+      } break;
+      case DMG_CB_RES_3_E: {
+         cpu->registers.e &= ~(1 << 3);
+      } break;
+      case DMG_CB_RES_3_H: {
+         cpu->registers.h &= ~(1 << 3);
+      } break;
+      case DMG_CB_RES_3_L: {
+         cpu->registers.l &= ~(1 << 3);
+      } break;
+      case DMG_CB_RES_3_A: {
+         cpu->registers.a &= ~(1 << 3);
+      } break;
+      case DMG_CB_RES_3_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 3);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RES_4_B: {
+         cpu->registers.b &= ~(1 << 4);
+      } break;
+      case DMG_CB_RES_4_C: {
+         cpu->registers.c &= ~(1 << 4);
+      } break;
+      case DMG_CB_RES_4_D: {
+         cpu->registers.d &= ~(1 << 4);
+      } break;
+      case DMG_CB_RES_4_E: {
+         cpu->registers.e &= ~(1 << 4);
+      } break;
+      case DMG_CB_RES_4_H: {
+         cpu->registers.h &= ~(1 << 4);
+      } break;
+      case DMG_CB_RES_4_L: {
+         cpu->registers.l &= ~(1 << 4);
+      } break;
+      case DMG_CB_RES_4_A: {
+         cpu->registers.a &= ~(1 << 4);
+      } break;
+      case DMG_CB_RES_4_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 4);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RES_5_B: {
+         cpu->registers.b &= ~(1 << 5);
+      } break;
+      case DMG_CB_RES_5_C: {
+         cpu->registers.c &= ~(1 << 5);
+      } break;
+      case DMG_CB_RES_5_D: {
+         cpu->registers.d &= ~(1 << 5);
+      } break;
+      case DMG_CB_RES_5_E: {
+         cpu->registers.e &= ~(1 << 5);
+      } break;
+      case DMG_CB_RES_5_H: {
+         cpu->registers.h &= ~(1 << 5);
+      } break;
+      case DMG_CB_RES_5_L: {
+         cpu->registers.l &= ~(1 << 5);
+      } break;
+      case DMG_CB_RES_5_A: {
+         cpu->registers.l &= ~(1 << 5);
+      } break;
+      case DMG_CB_RES_5_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 5);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RES_6_B: {
+         cpu->registers.b &= ~(1 << 6);
+      } break;
+      case DMG_CB_RES_6_C: {
+         cpu->registers.c &= ~(1 << 6);
+      } break;
+      case DMG_CB_RES_6_D: {
+         cpu->registers.d &= ~(1 << 6);
+      } break;
+      case DMG_CB_RES_6_E: {
+         cpu->registers.e &= ~(1 << 6);
+      } break;
+      case DMG_CB_RES_6_H: {
+         cpu->registers.h &= ~(1 << 6);
+      } break;
+      case DMG_CB_RES_6_L: {
+         cpu->registers.l &= ~(1 << 6);
+      } break;
+      case DMG_CB_RES_6_A: {
+         cpu->registers.a &= ~(1 << 6);
+      } break;
+      case DMG_CB_RES_6_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 6);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_RES_7_B: {
+         cpu->registers.b &= ~(1 << 7);
+      } break;
+      case DMG_CB_RES_7_C: {
+         cpu->registers.c &= ~(1 << 7);
+      } break;
+      case DMG_CB_RES_7_D: {
+         cpu->registers.d &= ~(1 << 7);
+      } break;
+      case DMG_CB_RES_7_E: {
+         cpu->registers.e &= ~(1 << 7);
+      case DMG_CB_RES_7_H: {
+         cpu->registers.h &= ~(1 << 7);
+      } break;
+      case DMG_CB_RES_7_L: {
+         cpu->registers.l &= ~(1 << 7);
+      } break;
+      case DMG_CB_RES_7_A: {
+         cpu->registers.a &= ~(1 << 7);
+      } break;
+      case DMG_CB_RES_7_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value &= ~(1 << 7);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_0_B: {
+         cpu->registers.b |= (1 << 0);
+      } break;
+      case DMG_CB_SET_0_C: {
+         cpu->registers.c |= (1 << 0);
+      } break;
+      case DMG_CB_SET_0_D: {
+         cpu->registers.d |= (1 << 0);
+      } break;
+      case DMG_CB_SET_0_E: {
+         cpu->registers.e |= (1 << 0);
+      } break;
+      case DMG_CB_SET_0_H: {
+         cpu->registers.h |= (1 << 0);
+      } break;
+      case DMG_CB_SET_0_L: {
+         cpu->registers.l |= (1 << 0);
+      } break;
+      case DMG_CB_SET_0_A: {
+         cpu->registers.a |= (1 << 0);
+      } break;
+      case DMG_CB_SET_0_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= 1 << 0;
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_1_B: {
+         cpu->registers.b |= (1 << 1);
+      } break;
+      case DMG_CB_SET_1_C: {
+         cpu->registers.c |= (1 << 1);
+      } break;
+      case DMG_CB_SET_1_D: {
+         cpu->registers.d |= (1 << 1);
+      } break;
+      case DMG_CB_SET_1_E: {
+         cpu->registers.e |= (1 << 1);
+      } break;
+      case DMG_CB_SET_1_H: {
+         cpu->registers.h |= (1 << 1);
+      } break;
+      case DMG_CB_SET_1_L: {
+         cpu->registers.l |= (1 << 1);
+      } break;
+      case DMG_CB_SET_1_A: {
+         cpu->registers.a |= (1 << 1);
+      } break;
+      case DMG_CB_SET_1_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= (1 << 1);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_2_B: {
+         cpu->registers.b |= (1 << 2);
+      } break;
+      case DMG_CB_SET_2_C: {
+         cpu->registers.c |= (1 << 2);
+      } break;
+      case DMG_CB_SET_2_D: {
+         cpu->registers.d |= (1 << 2);
+      } break;
+      case DMG_CB_SET_2_E: {
+         cpu->registers.e |= (1 << 2);
+      } break;
+      case DMG_CB_SET_2_H: {
+         cpu->registers.h |= (1 << 2);
+      } break;
+      case DMG_CB_SET_2_L: {
+         cpu->registers.l |= (1 << 2);
+      } break;
+      case DMG_CB_SET_2_A: {
+         cpu->registers.a |= (1 << 2);
+      } break;
+      case DMG_CB_SET_2_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= (1 << 2);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_3_B: {
+         cpu->registers.b |= (1 << 3);
+      } break;
+      case DMG_CB_SET_3_C: {
+         cpu->registers.c |= (1 << 3);
+      } break;
+      case DMG_CB_SET_3_D: {
+         cpu->registers.d |= (1 << 3);
+      } break;
+      case DMG_CB_SET_3_E: {
+         cpu->registers.e |= (1 << 3);
+      } break;
+      case DMG_CB_SET_3_H: {
+         cpu->registers.h |= (1 << 3);
+      } break;
+      case DMG_CB_SET_3_L: {
+         cpu->registers.l |= (1 << 3);
+      } break;
+      case DMG_CB_SET_3_A: {
+         cpu->registers.a |= (1 << 3);
+      } break;
+      case DMG_CB_SET_3_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= (1 << 3);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_4_B: {
+         cpu->registers.b |= (1 << 4);
+      } break;
+      case DMG_CB_SET_4_C: {
+         cpu->registers.c |= (1 << 4);
+      } break;
+      case DMG_CB_SET_4_D: {
+         cpu->registers.d |= (1 << 4);
+      } break;
+      case DMG_CB_SET_4_E: {
+         cpu->registers.e |= (1 << 4);
+      } break;
+      case DMG_CB_SET_4_H: {
+         cpu->registers.h |= (1 << 4);
+      } break;
+      case DMG_CB_SET_4_L: {
+         cpu->registers.l |= (1 << 4);
+      } break;
+      case DMG_CB_SET_4_A: {
+         cpu->registers.a |= (1 << 4);
+      } break;
+      case DMG_CB_SET_4_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= (1 << 4);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_5_B: {
+         cpu->registers.b |= (1 << 5);
+      } break;
+      case DMG_CB_SET_5_C: {
+         cpu->registers.c |= (1 << 5);
+      } break;
+      case DMG_CB_SET_5_D: {
+         cpu->registers.d |= (1 << 5);
+      } break;
+      case DMG_CB_SET_5_E: {
+         cpu->registers.e |= (1 << 5);
+      } break;
+      case DMG_CB_SET_5_H: {
+         cpu->registers.h |= (1 << 5);
+      } break;
+      case DMG_CB_SET_5_L: {
+         cpu->registers.l |= (1 << 5);
+      } break;
+      case DMG_CB_SET_5_A: {
+         cpu->registers.a |= (1 << 5);
+      } break;
+      case DMG_CB_SET_5_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= (1 << 5);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_6_B: {
+         cpu->registers.b |= (1 << 6);
+      } break;
+      case DMG_CB_SET_6_C: {
+         cpu->registers.c |= (1 << 6);
+      } break;
+      case DMG_CB_SET_6_D: {
+         cpu->registers.d |= (1 << 6);
+      } break;
+      case DMG_CB_SET_6_E: {
+         cpu->registers.e |= (1 << 6);
+      } break;
+      case DMG_CB_SET_6_H: {
+         cpu->registers.h |= (1 << 6);
+      } break;
+      case DMG_CB_SET_6_L: {
+         cpu->registers.l |= (1 << 6);
+      } break;
+      case DMG_CB_SET_6_A: {
+         cpu->registers.a |= (1 << 6);
+      } break;
+      case DMG_CB_SET_6_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= (1 << 6);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+
+      case DMG_CB_SET_7_B: {
+         cpu->registers.b |= (1 << 7);
+      } break;
+      case DMG_CB_SET_7_C: {
+         cpu->registers.c |= (1 << 7);
+      } break;
+      case DMG_CB_SET_7_D: {
+         cpu->registers.d |= (1 << 7);
+      } break;
+      case DMG_CB_SET_7_E: {
+         cpu->registers.e |= (1 << 7);
+      } break;
+      case DMG_CB_SET_7_H: {
+         cpu->registers.h |= (1 << 7);
+      } break;
+      case DMG_CB_SET_7_L: {
+         cpu->registers.l |= (1 << 7);
+      } break;
+      case DMG_CB_SET_7_A: {
+         cpu->registers.a |= (1 << 7);
+      } break;
+      case DMG_CB_SET_7_HL: {
+         Uint8 value = DMG_ReadMemory(cpu, cpu->registers.hl);
+         value |= (1 << 7);
+         DMG_WriteMemory(cpu, cpu->registers.hl, value);
+      } break;
+   }
 }
 
 static inline void DMG_WriteProgramCounterToStack(DMG_CPU* cpu) {
