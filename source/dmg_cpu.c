@@ -20,6 +20,13 @@
 
 #include "demigod.h"
 
+/*
+ * NOTE
+ *    I can't decide if I want these here.
+ *    Either the declaration/definition would be inlined here.
+ *    Or the functions should be defined in another file, called something like 'dmg_cpu_internals.h"
+ *       - remi 5 March 2026
+ */
 static inline Uint8 DMG_Add8(DMG_CPU* cpu, Uint8 augend, Uint8 addend);
 
 static inline Uint8 DMG_AddWithCarry8(DMG_CPU* cpu, Uint8 augend, Uint8 addend);
