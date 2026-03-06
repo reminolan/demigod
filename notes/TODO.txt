@@ -4,30 +4,48 @@ Legend:
    [-] Partially Implemented
    [+] Fully Implemented
 
+--------------------------------------------------------------------------------
+
 Clock:
-   [ ] 4 MiHz Clock
-   [ ] 1 MiHz Phi
+   [ ] Multithreading
+   [ ] 4 MiHz Pulse (Clock)
+   [ ] 1 MiHz Pulse (Instruction)
 
 CPU:
    [-] Instructions
+      [+] FETCH
+      [-] EXECUTE
+         [-] Standard Instructions
+            STOP
+            HALT
+         [-] CB-prefixed Instructions
+            TESTING
    [-] ALU
       [ ] Proper Looping (255 + 1 = 0)
       [ ] Signed Support
 
 Memory:
-   [ ] Cartridge ROM Bank
-   [ ] Cartridge Switchable Bank
-   [ ] Video RAM
-   [ ] Cartridge RAM
-   [ ] Work RAM
-   [ ] Echo RAM
-   [ ] Object Attribute Memory
-   [ ] Prohibitted
-   [ ] I/O Registers
-   [ ] High RAM
-   [ ] Interrupt Enable
+   [ ] Regions
+      [ ] Cartridge ROM Bank
+      [ ] Cartridge Switchable Bank
+      [ ] Video RAM
+      [ ] Cartridge RAM
+      [ ] Work RAM
+      [ ] Echo RAM
+      [ ] Object Attribute Memory
+      [ ] Prohibitted
+      [ ] I/O Registers
+      [ ] High RAM
+      [ ] Interrupt Enable
+   [ ] Reading/Writing
+      [ ] DMG_ReadMemory
+            -- stubbed
+      [ ] DMG_WriteMemory
+            --stubbed
 
 PPU:
-   [ ] Backbuffer
+   [ ] SDL_Renderer
+      [ ] Switchable Backbuffers
+      [ ] Render to Screen
    [ ] Modes
 
