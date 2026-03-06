@@ -993,7 +993,7 @@ void DMG_ExecuteInstruction(DMG_CPU* cpu) {
       case DMG_OP_CB_op: {
          /* Note:
           * Realistically this doesn't need to be another function because it's only called here.
-          * However, I don't particularly want a 256+ line case statement so I've broken it out.
+          * However, I don't particularly want a 768+ line case statement so I've broken it out.
           *    - remi 05 Mar 26
           */
          DMG_CBOpCode cb_op_code = DMG_ReadMemory(cpu, cpu->registers.program_counter++);
@@ -1801,6 +1801,7 @@ static inline void DMG_ExecuteCBOpCode(DMG_CPU* cpu, DMG_CBOpCode cb_op_code) {
       } break;
       case DMG_CB_RES_7_E: {
          cpu->registers.e &= ~(1 << 7);
+      } break;
       case DMG_CB_RES_7_H: {
          cpu->registers.h &= ~(1 << 7);
       } break;
